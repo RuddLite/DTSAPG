@@ -1,0 +1,51 @@
+{% set wrapper_class = "field-block" + (" dep-field" if f.depends_on else "") %}
+<div class="{{ wrapper_class }}"
+     {% if f.depends_on %}data-depends-on="{{ f.depends_on[0] }}" data-depends-value="{{ f.depends_on[1] }}" style="display:none;"{% endif %}>
+
+  <label class="form-label">
+    {{ f.label }}{% if f.required %} <span class="text-danger">*</span>{% endif %}
+  </label>
+
+  {% if f.type == "yesno" or f.type == "yesno_na" %}
+    <div class="btn-group yn-group d-block" role="group">
+      <input type="radio" class="btn-check" name="{{ f.id }}" id="{{ f.id }}_yes" value="YES" autocomplete="off" {% if f.required %}required{% endif %}>
+      <label class="btn btn-outline-success" for="{{ f.id }}_yes">Yes</label>
+
+      <input type="radio" class="btn-check" name="{{ f.id }}" id="{{ f.id }}_no" value="NO" autocomplete="off" {% if f.required %}required{% endif %}>
+      <label class="btn btn-outline-secondary" for="{{ f.id }}_no">No</label>
+
+      {% if f.type == "yesno_na" %}
+        <input type="radio" class="btn-check" name="{{ f.id }}" id="{{ f.id }}_na" value="NA" autocomplete="off" {% if f.required %}required{% endif %}>
+        <label class="btn btn-outline-dark" for="{{ f.id }}_na">N/A</label>
+      {% endif %}
+    </div>
+    {% if f.type == "yesno_na" %}
+      <div class="form-text">Choose N/A if this question doesn't apply — no text will be added to the document either way.</div>
+    {% endif %}
+    {% if f.clause_preview %}
+      <div>
+        <button type="button" class="btn btn-link btn-sm p-0 preview-toggle" data-target="preview-{{ f.id }}">Preview clause text</button>
+        <div id="preview-{{ f.id }}" class="clause-preview d-none">{{ f.clause_preview }}</div>
+      </div>
+    {% endif %}
+
+  {% elif f.type == "state" %}
+    <select name="{{ f.id }}" class="form-select" {% if f.required %}required{% endif %}>
+      <option value="" disabled selected>Select a state…</option>
+      {% for s in states %}
+        <option value="{{ s }}">{{ s }}{% if s in states_with_case_law %} — case law on file{% endif %}</option>
+      {% endfor %}
+    </select>
+
+  {% elif f.type == "textarea" %}
+    <textarea name="{{ f.id }}" class="form-control" rows="3" {% if f.required %}required{% endif %}>{{ f.default_value or "" }}</textarea>
+
+  {% elif f.type == "number" %}
+    <input type="number" step="0.01" name="{{ f.id }}" class="form-control" {% if f.required %}required{% endif %} {% if f.default_value is defined %}value="{{ f.default_value }}"{% endif %}>
+
+  {% else %}
+    <input type="text" name="{{ f.id }}" class="form-control" {% if f.required %}required{% endif %} value="{{ f.default_value or '' }}">
+  {% endif %}
+
+  {% if f.help %}<div class="form-text">{{ f.help }}</div>{% endif %}
+</div>
