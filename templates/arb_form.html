@@ -1,0 +1,106 @@
+<!doctype html>
+<title>Arbitration Packet Generator</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .clause-preview { background:#fff8e1; border:1px solid #ffe08a; border-radius:.375rem;
+                     padding:.5rem .75rem; font-size:.875rem; font-style:italic; margin-top:.35rem; }
+  .clause-preview code { background:none; color:#b02a37; font-style:normal; }
+  .dep-field { border-left:3px solid #0d6efd; padding-left:.75rem; margin-left:.25rem; }
+  .step { display:none; }
+  .step.active { display:block; }
+  .field-block { margin-bottom:1.1rem; }
+  .yn-group .btn { min-width:70px; }
+  .wizard-progress { position:sticky; top:0; background:#fff; z-index:10; padding:.75rem 0; border-bottom:1px solid #dee2e6; }
+</style>
+
+<div class="container py-4" style="max-width:900px;">
+  <h3 class="mb-1">Arbitration Packet Generator</h3>
+  <p class="text-muted mb-3">Generates a completed TOP + BOTTOM arbitration packet (.docx) from your claim inputs.</p>
+
+  <div class="alert alert-warning">
+    <strong>NOTE:</strong> Please refrain from using "$" or "%" symbols in your inputs for damage totals or liability %'s.
+  </div>
+  <div class="alert alert-warning">
+    <strong>NOTE:</strong> if no police report, reference the source of the narrative (driver's statement, accident report, etc.)
+  </div>
+  <div class="alert alert-danger">
+    <strong>IF FILING VS USAA</strong> ALWAYS INCLUDE PROOF THAT THE ADVERSE WAS AT THE SCENE OF THE ACCIDENT IF WE DO NOT HAVE A PR. I.E. Driver's License photo, vehicle photo, etc.
+  </div>
+
+  <div class="wizard-progress d-flex justify-content-between align-items-center">
+    <div>
+      <span class="badge bg-primary step-badge" data-step="0">1. TOP form</span>
+      <span class="badge bg-secondary step-badge" data-step="1">2. BOTTOM form</span>
+    </div>
+    <div class="text-muted small" id="step-label">Step 1 of 2 — TOP form inputs</div>
+  </div>
+
+  <form method="post" action="{{ url_for('generate') }}" id="apg-form" class="mt-3" novalidate>
+    <div class="mb-3 field-block">
+      <label class="form-label">Our File # <span class="text-danger">*</span></label>
+      <input name="our_file" class="form-control" required>
+      <div class="form-text">Used to name the generated .docx files.</div>
+    </div>
+
+    <!-- ═══════════════════ STEP 1 — TOP ═══════════════════ -->
+    <div class="step active" data-step="0">
+      {% for f in top_fields %}
+        {{ '' }}
+        {% include "_field.html" %}
+      {% endfor %}
+      <button type="button" class="btn btn-primary" id="btn-next">Next: BOTTOM form &rarr;</button>
+    </div>
+
+    <!-- ═══════════════════ STEP 2 — BOTTOM ═══════════════════ -->
+    <div class="step" data-step="1">
+      {% for f in bottom_fields %}
+        {% include "_field.html" %}
+      {% endfor %}
+      <button type="button" class="btn btn-outline-secondary" id="btn-back">&larr; Back to TOP form</button>
+      <button type="submit" class="btn btn-success">Generate Arbitration Packet</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const steps = document.querySelectorAll('.step');
+const badges = document.querySelectorAll('.step-badge');
+const stepLabel = document.getElementById('step-label');
+const stepNames = ['Step 1 of 2 — TOP form inputs', 'Step 2 of 2 — BOTTOM form inputs'];
+
+function showStep(i) {
+  steps.forEach(s => s.classList.toggle('active', s.dataset.step == i));
+  badges.forEach(b => b.classList.toggle('bg-primary', b.dataset.step == i));
+  badges.forEach(b => b.classList.toggle('bg-secondary', b.dataset.step != i));
+  stepLabel.textContent = stepNames[i];
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+document.getElementById('btn-next').addEventListener('click', () => showStep(1));
+document.getElementById('btn-back').addEventListener('click', () => showStep(0));
+
+// ── conditional (dependent) fields: show/enable only when the controlling
+//    yes/no question has the required answer ──
+function refreshDependents() {
+  document.querySelectorAll('.dep-field').forEach(el => {
+    const dep = el.dataset.dependsOn;
+    const want = el.dataset.dependsValue;
+    const checked = document.querySelector(`input[name="${dep}"]:checked`);
+    const match = checked && checked.value === want;
+    el.style.display = match ? '' : 'none';
+    el.querySelectorAll('input, textarea, select').forEach(inp => {
+      inp.disabled = !match;
+    });
+  });
+}
+document.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', refreshDependents));
+refreshDependents();
+
+// ── clause preview toggles ──
+document.querySelectorAll('.preview-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = document.getElementById(btn.dataset.target);
+    target.classList.toggle('d-none');
+    btn.textContent = target.classList.contains('d-none') ? 'Preview clause text' : 'Hide clause text';
+  });
+});
+</script>
